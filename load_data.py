@@ -41,4 +41,42 @@ def load_data(file_name, building_id, floor_id, percentage, split_size, origin,
   return X, Y, val_X, val_Y, origin
 
 
-
+def load():
+  import numpy as np
+  import random
+  random.seed(0)
+  np.random.seed(50)
+  #dataset parameter
+  source_BuildingID = 0
+  source_FloorID = 0 #data to pretrain
+  
+  target_BuildingID = 0
+  target_FloorID = 3 #data to be fine tuned
+  
+  source_percentage = 1 #percentage of the srource training data 
+  unlabele_target_percentage = 300.0 / 1356 #percentage of the target training data
+  
+  split_size = 0.3
+ 
+  file_name =  "trainingData.csv"
+  train_x_s, train_y_s, val_x_s, val_y_s, origin_s = \
+    load_data(file_name, source_BuildingID, source_FloorID,
+              source_percentage, split_size, [], scaling = True, 
+              add_power = 80)
+      
+#  print("Increazing the power level of the source floor with 50dB")
+#  train_x_s[train_x_s != -110] = train_x_s[train_x_s != -110] + 50 
+#  val_x_s[val_x_s != -110] = val_x_s[val_x_s != -110] + 50 
+  
+ 
+  train_x_t, train_y_t, val_x_t, val_y_t, _ = \
+    load_data(file_name, target_BuildingID, target_FloorID,
+              unlabele_target_percentage, split_size, [], scaling = True)
+    
+  test_file_name = "validationData.csv"
+  test_x_t, test_y_t, _, _, _ = load_data(test_file_name, target_BuildingID,
+                                      target_FloorID, 1, 0, origin_s,
+                                      scaling = True)
+  
+  return train_x_s, train_y_s, val_x_s, val_y_s, train_x_t, train_y_t, \
+val_x_t, val_y_t, test_x_t, test_y_t
