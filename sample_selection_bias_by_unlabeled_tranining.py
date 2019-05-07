@@ -10,7 +10,11 @@ from sklearn import preprocessing
 dropout_pr = 0.5
 NN_scaling = False
 fine_tuning = False
-load_data_flag = True
+
+try:
+  load_data_flag 
+except :
+  load_data_flag = True 
 
 if load_data_flag:
   from load_data import load
@@ -28,6 +32,8 @@ x_t = np.concatenate((train_x_s, val_x_t), axis = 0)
 
 
 print('Kernel mean matching')
+from kernel_mean_matching import eprimical_kmm_emb as ekmm_emb
+
 #coef_s =  kmm(emb_x_t, emb_x_s, kern = kmm_kernel, B = B)
 #coef_s, coef_t =  ekmm(emb_x_t, emb_x_s, kern = kmm_kernel, B = B)
 #coef_s, coef_t =  ekmmd(emb_x_t, emb_x_s, kern = kmm_kernel, B = B)

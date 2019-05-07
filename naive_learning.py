@@ -11,8 +11,11 @@ dropout_pr = 0.5
 NN_scaling = False
 fine_tuning = False
 
-
-load_data_flag = True
+try:
+  load_data_flag 
+except :
+  load_data_flag = True 
+  
 
 if load_data_flag == True:
   from load_data import load

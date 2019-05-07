@@ -12,6 +12,7 @@ from load_data import load
 train_x_s, train_y_s, val_x_s, val_y_s, train_x_t, train_y_t, \
   val_x_t, val_y_t, test_x_t, test_y_t = load()
 
+load_data_flag = False
 
 fine_tuning = True
 %run -i naive_learning.py

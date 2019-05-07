@@ -23,7 +23,7 @@ if load_data_flag == True:
   train_x_s, train_y_s, val_x_s, val_y_s, train_x_t, train_y_t, \
     val_x_t, val_y_t, test_x_t, test_y_t = load()
 
-from metric_learning import hisc_meme
+from metric_learning import hisc_meme_no_labeled_data
 
 X_s = np.concatenate((train_x_s, val_x_s), axis = 0)
 X_t = np.concatenate((train_x_t, val_x_t), axis = 0)
@@ -31,7 +31,7 @@ Y_s =  np.concatenate((train_y_s, val_y_s), axis = 0)
 Y_t =  np.concatenate((train_y_t, val_y_t), axis = 0)
 print('Finding the metric')
 
-M , L = hisc_meme(X_s, Y_s, X_t, Y_t, p = 2, B = 1000,
+M , L = hisc_meme_no_labeled_data(X_s, Y_s, X_t, p = 2, B = 1000,
                   threshhold = 1)
 
 

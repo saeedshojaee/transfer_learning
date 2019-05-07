@@ -41,7 +41,14 @@ def load_data(file_name, building_id, floor_id, percentage, split_size, origin,
   return X, Y, val_X, val_Y, origin
 
 
-def load():
+def load(source_BuildingID = 0,
+         source_FloorID = 0,
+         target_BuildingID = 0,
+         target_FloorID = 3,
+         source_percentage = 1,
+         unlabele_target_percentage = 300.0 / 1356,
+         split_size = 0.3):
+  
   import numpy as np
   import random
   random.seed(0)
