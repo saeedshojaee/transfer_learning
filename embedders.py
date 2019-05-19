@@ -51,7 +51,12 @@ def spectral():
 # =============================================================================
 def tsne():
   print("t-SNE embedding is selected")
-  embedder = manifold.TSNE(n_components=n_components, init='pca', random_state=0)
+  embedder = manifold.TSNE(n_components=n_components, perplexity=30.0,
+                           early_exaggeration=12.0,
+                           learning_rate=200.0, n_iter=5000,
+                           n_iter_without_progress=300, min_grad_norm=1e-07,
+                           metric='euclidean', init='random', verbose=0,
+                           random_state=None, method='barnes_hut', angle=0.5 )
   return embedder
 # =============================================================================
 def no_embedding():
@@ -65,12 +70,21 @@ def no_embedding():
 def autoencoder():
   print("autoencoder is selected")
   class ae:
-    def fit_transform(x , val_x):
+    def __init__(self):
+      self.encoder = None
+      self.decoder = None
+    def fit_transform(self, x , val_x):
       from autoencoder import autoencoder
-      emb_x, emb_val_x, _,_ = autoencoder(x, val_x, n_components = n_components )
+      emb_x, emb_val_x, self.encoder, self.decoder = autoencoder(x, val_x, n_components = n_components )
       return emb_x, emb_val_x
-  embedder = ae
-  return embedder    
+    def predict(self, x):
+      if self.encoder:
+        emb_x = self.encoder.predict(x)
+        return emb_x
+      else:
+        print("model needs to be trained")
+  embedder = ae()
+  return embedder
 # =============================================================================
 def embedding(argument1, n_cmp = 3, n_ngb = 30):
   switcher = {
@@ -95,22 +109,39 @@ def embedding(argument1, n_cmp = 3, n_ngb = 30):
   # Execute the function
   return func()
 
-def variable_embedder(embedder, variables ):
+def variable_embedder(embedder, variables, validation = None):
   import numpy as np
+  if validation:
+    val_length = [0]
+    embedding_val_vec = np.array([]).reshape(0,validation[1].shape[1])
   length = [0]
   embedding_vec = np.array([]).reshape(0,variables[1].shape[1])
   output = []
-  for x in variables:
+  for idx, x in enumerate(variables):
     embedding_vec = np.concatenate((embedding_vec, x), axis=0)
     length = length + [embedding_vec.shape[0]]
-  from sklearn import preprocessing
-  embedded_vec = preprocessing.scale(embedder.fit_transform(embedding_vec))
-  output = []
+    if validation:
+      embedding_val_vec = np.concatenate((embedding_val_vec, validation[idx]), axis=0)
+      val_length = val_length + [embedding_val_vec.shape[0]]
+      
+
+  if validation:
+    embedded_vec , embedded_val = embedder.fit_transform(embedding_vec, \
+                                                            embedding_val_vec)
+  else:
+    from sklearn import preprocessing
+    embedded_vec = preprocessing.scale(embedder.fit_transform(embedding_vec))
+    output = []
+    
+
   
   for i in range(len(length)-1):
     output = output + [embedded_vec[length[i]:length[i+1],:]]
+    if validation:
+      output = output + [embedded_val[val_length[i]:val_length[i+1],:]]
   return output
-    
+   
+
 #
 #emb_x_s = preprocessing.scale(embedder.fit_transform(train_x_s))
 #emb_x_t = preprocessing.scale(embedder.fit_transform(train_x_t))

@@ -64,7 +64,7 @@ class DANN():
         
         # Build and compile the generator
         self.encoder = self.build_encoder()
-        self.encoder.compile(loss='binary_crossentropy', optimizer=self.optimizer_2)
+        self.encoder.compile(loss='mean_squared_error', optimizer=self.optimizer_2)
 
 
         # generator takes x as input
@@ -83,11 +83,17 @@ class DANN():
 
         # The combined model  (stacked generator and discriminator) takes
         # noise as input => generates images => determines validity
+        self.discriminator.trainable = False
+
         self.floor_combined = Model(x, valid)
         self.floor_combined.compile(loss='binary_crossentropy', optimizer=self.optimizer_1)
         
+        self.discriminator.trainable = True
+        self.encoder.trainable = False
+        self.floor_combined_d = Model(x, valid)
+        self.floor_combined_d.compile(loss='binary_crossentropy', optimizer=self.optimizer_1)
         
-        
+        self.encoder.trainable = True
         self.localization_combined = Model(x, location)
         self.localization_combined.compile(loss='mean_squared_error', optimizer=self.optimizer_2)
             
@@ -159,7 +165,8 @@ class DANN():
               train_x_t,train_y_t, val_x_t, val_y_t,
               epochs, batch_size=128, save_interval=50):
     
-    
+        # self.discriminator.trainable = True
+        # self.encoder.trainable = True
         half_batch = int(batch_size / 2)
     
         for epoch in range(epochs):
@@ -190,6 +197,11 @@ class DANN():
             d_loss_source = self.discriminator.train_on_batch(encoded_s, np.ones((half_batch, 1)))
             d_loss_target = self.discriminator.train_on_batch(encoded_t, np.zeros((half_batch, 1)))
             d_loss = 0.5 * np.add(d_loss_source, d_loss_target)
+            
+            # d_loss_source = self.floor_combined_d.train_on_batch(encoded_s, np.ones((half_batch, 1)))
+            # d_loss_target = self.floor_combined_d.train_on_batch(encoded_t, np.zeros((half_batch, 1)))
+            # d_loss = 0.5 * np.add(d_loss_source, d_loss_target)
+            
 
             # ---------------------
             #  Train localization
@@ -221,7 +233,7 @@ class DANN():
                 target = self.floor_combined.predict(val_x_t)
                 
                 mean_s = np.mean(source)
-                mean_t = np.mean(1 - target)
+                mean_t = 1 - np.mean(target)
                 
                 print('-'*80)
                 print ("Validation errors: source: %f, \t target: %f" %\
@@ -259,7 +271,7 @@ if __name__ == '__main__':
     dann = DANN()
     dann.train(train_x_s, train_y_s, val_x_s, val_y_s, \
                train_x_t,train_y_t, val_x_t, val_y_t,
-                  epochs=100000, batch_size=128, save_interval=200)
+                  epochs=100000, batch_size=128, save_interval=100)
     
     predict_y = dann.localization_combined.predict(test_x_t)
     error = np.linalg.norm(predict_y - test_y_t, axis=1)    

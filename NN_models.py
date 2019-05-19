@@ -85,7 +85,7 @@ class my_models:
     earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=60,
                                                 verbose=0, mode='auto')
     self.model.fit(x=X, y=Y,
-                   epochs=1000,
+                   epochs=10000,
                    batch_size=64,
                    callbacks=[earlyStopping],
                    validation_data=(val_X,  val_Y))

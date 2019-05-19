@@ -16,24 +16,23 @@ def eprimical_kmm(target_samples, source_samples, kern = 'rbf', B = 1):
 
 def eprimical_kmm_emb(target_samples, source_samples, kern = 'rbf', B = 1,
                       embedder_type = 'autoencoder', n_components = 30):
-  from embedders import embedding
+  from embedders import embedding, variable_embedder
+  embedder = embedding(embedder_type, n_cmp = n_components, n_ngb = 10)
   if embedder_type != "autoencoder":
-    embedder = embedding(embedder_type, n_cmp = n_components, n_ngb = 30)
-    X = embedder.fit_transform(target_samples)
-    C = embedder.fit_transform(source_samples)
-  else:
+    X, C = variable_embedder(embedder, [target_samples, source_samples])
+  else:  
     from autoencoder import autoencoder
     split = 0.3
-    cut = np.floor(target_samples.shape[0] * split ).astype(int)
-    test_X = target_samples[1:cut,:]
+    cut = np.floor(target_samples.shape[0] * (1- split) ).astype(int)
+    test_X = target_samples[:cut,:]
     val_X  = target_samples[cut:, :]
-    cut = np.floor(source_samples.shape[0] * split ).astype(int)
-    test_C = source_samples[1:cut,:]
+    cut = np.floor(source_samples.shape[0] * (1 - split) ).astype(int)
+    test_C = source_samples[:cut,:]
     val_C  = source_samples[cut:, :]
-    test_X, val_X, _,_ = autoencoder(test_X, val_X,
-                                     n_components = n_components)
-    test_C, val_C, _,_  = autoencoder(test_C, val_C,
-                                      n_components = n_components)
+    test_X, val_X, test_C, val_C\
+    = variable_embedder(embedder,\
+                        [test_X, test_C],[val_X, val_C])
+
     X = np.concatenate((test_X, val_X), axis = 0)
     C = np.concatenate((test_C, val_C), axis = 0)
    
@@ -46,11 +45,12 @@ def eprimical_kmm_emb(target_samples, source_samples, kern = 'rbf', B = 1,
   if embedder_type == 'tsne' or embedder_type == "autoencoder":
     X = X.astype(np.double)
     C = C.astype(np.double)
-  Z = np.concatenate((X, C),
-                      axis=0)
-  coef = kernel_mean_matching(X, Z, kern=kern, B=B)
-  coef_s = coef[0:source_samples.shape[0]]
-  coef_t = coef[source_samples.shape[0]:]
+  
+  coef_s = kernel_mean_matching(X, C, kern=kern, B=B)
+  coef_t = []
+  
+  # coef_s, coef_t = eprimical_kmm(X, C , kern=kern, B=B)
+  
   return coef_s, coef_t
 
 
@@ -69,7 +69,7 @@ def eprimical_kmm_difference(target_samples, source_samples, kern = 'rbf', B = 1
 # referenres:
 #  1. Gretton, Arthur, et al. "Covariate shift by kernel mean matching." Dataset shift in machine learning 3.4 (2009): 5.
 #  2. Huang, Jiayuan, et al. "Correcting sample selection bias by unlabeled data." Advances in neural information processing systems. 2006.
-def kernel_mean_matching(X, Z, kern='lin', B=1.0, eps=None):
+def kernel_mean_matching(X, Z, kern='lin', B=1.0, eps=None, sigma = 1.0):
     nx = X.shape[0]
     nz = Z.shape[0]
     if eps == None:
@@ -78,7 +78,7 @@ def kernel_mean_matching(X, Z, kern='lin', B=1.0, eps=None):
         K = np.dot(Z, Z.T)
         kappa = np.sum(np.dot(Z, X.T)*float(nz)/float(nx),axis=1)
     elif kern == 'rbf':
-        K = compute_rbf(Z,Z)
+        K = compute_rbf(Z,Z, sigma = sigma)
         kappa = np.sum(compute_rbf(Z,X),axis=1)*float(nz)/float(nx)
     else:
         raise ValueError('unknown kernel')

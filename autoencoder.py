@@ -51,7 +51,7 @@ def autoencoder(train_x , val_x, n_components = 1):
   
   
   ae_model.fit(x=train_x, y=train_x,
-                 epochs=100,
+                 epochs=10000,
                  batch_size=64,
                  callbacks=[earlyStopping],
                  shuffle = False,
