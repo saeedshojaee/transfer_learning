@@ -9,7 +9,11 @@ from sklearn import preprocessing
 
 dropout_pr = 0.5
 NN_scaling = False
-fine_tuning = False
+
+try:
+  fine_tuning
+except :
+  fine_tuning = False
 
 try:
   load_data_flag 
@@ -22,16 +26,21 @@ if load_data_flag == True:
   train_x_s, train_y_s, val_x_s, val_y_s, train_x_t, train_y_t, \
     val_x_t, val_y_t, test_x_t, test_y_t = load()
 
-from embedders import embedding
-
+from embedders import variable_embedder, embedding 
+# embedding_type = "pca"
+# embedder = embedding(embedding_type, n_cmp = 100)
 embedding_type = "no_embedding"
 embedder = embedding(embedding_type)
 # =============================================================================
-emb_x_s = embedder.fit_transform(train_x_s)
-emb_x_t = embedder.fit_transform(train_x_t)
-emb_val_x_s = embedder.fit_transform(val_x_s)
-emb_val_x_t = embedder.fit_transform(val_x_t)
-emb_test_x = embedder.fit_transform(test_x_t)
+emb_x_s, emb_val_x_s, emb_x_t, emb_val_x_t, emb_test_x = \
+variable_embedder(embedder,\
+[train_x_s, val_x_s, train_x_t, val_x_t, test_x_t]) 
+# =============================================================================
+# emb_x_s = embedder.fit_transform(train_x_s)
+# emb_x_t = embedder.fit_transform(train_x_t)
+# emb_val_x_s = embedder.fit_transform(val_x_s)
+# emb_val_x_t = embedder.fit_transform(val_x_t)
+# emb_test_x = embedder.fit_transform(test_x_t)
 
 # =============================================================================
 num_inputs = emb_x_s.shape[1]# input layer size

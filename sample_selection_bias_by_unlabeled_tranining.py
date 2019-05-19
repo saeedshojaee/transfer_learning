@@ -1,6 +1,7 @@
 from NN_models import my_models
 from print_stat import print_stat
 import numpy as np
+import numpy.matlib as npm
 import matplotlib.pyplot as plt
 from utility_func import sum_power
 from plotters import plot_scatter_colored 
@@ -21,10 +22,6 @@ if load_data_flag:
   train_x_s, train_y_s, val_x_s, val_y_s, train_x_t, train_y_t, \
     val_x_t, val_y_t, test_x_t, test_y_t = load()
 
-# =============================================================================
-kmm_kernel = 'lin'
-B = 10
-# =============================================================================
 # This way we preserve the statistics of the signal
 
 x_s = np.concatenate((train_x_s, val_x_s), axis = 0)
@@ -32,14 +29,22 @@ x_t = np.concatenate((train_x_s, val_x_t), axis = 0)
 
 
 print('Kernel mean matching')
-from kernel_mean_matching import eprimical_kmm_emb as ekmm_emb
+# =============================================================================
+kmm_kernel = 'rbf'
+B = 1000
+# =============================================================================
 
-#coef_s =  kmm(emb_x_t, emb_x_s, kern = kmm_kernel, B = B)
-#coef_s, coef_t =  ekmm(emb_x_t, emb_x_s, kern = kmm_kernel, B = B)
-#coef_s, coef_t =  ekmmd(emb_x_t, emb_x_s, kern = kmm_kernel, B = B)
-coef_s, coef_t =  ekmm_emb(x_t, x_s, kern = kmm_kernel, B = B,
-                           embedder_type = 'no_embedding', n_components = 20)
+# from kernel_mean_matching import eprimical_kmm as ekmm
+# coef_s, coef_t =  ekmm(x_t, x_s, kern = kmm_kernel, B = B)
 
+from kernel_mean_matching import kernel_mean_matching as kmm
+coef_s =  kmm(x_t, x_s, kern = kmm_kernel, B = B)
+
+# from kernel_mean_matching import eprimical_kmm_emb as ekmm_emb
+# coef_s, coef_t =  ekmm_emb(x_t, x_s, kern = kmm_kernel, B = B,
+#                             embedder_type = 'autoencoder', n_components = 10)
+
+#coef_s, coef_t =  ekmmd(x_t, x_s, kern = kmm_kernel, B = B)
 
 print('Done')
 
@@ -87,14 +92,18 @@ if fine_tuning:
   title = 'sample selection bias with fine_tuning'
   print_stat(title, error_sample_bias_f, ssbc_train_loss_f, ssbc_val_loss_f, ssbc_test_loss_f)
 # =============================================================================
-from plotters import error_dist 
+from plotters import error_dist , plot_cdf, plot_embeding
 error_dist(train_x_s, train_y_s, train_x_t, train_y_t, error_sample_bias,
            test_y_t, weights=coef_s,  title = title)
 plt.show()
 
-from plotters import plot_cdf
+plot_embeding(train_x_s, train_x_t, coef_s, train_y_s, train_y_t)
+
+
 plot_cdf(error_sample_bias, 100)    
 plt.show()
+
+print_stat(title, error_sample_bias, ssbc_train_loss, ssbc_val_loss, ssbc_test_loss)
 
 
 del model

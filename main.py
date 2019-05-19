@@ -14,6 +14,16 @@ train_x_s, train_y_s, val_x_s, val_y_s, train_x_t, train_y_t, \
 
 load_data_flag = False
 
+
+from embedders import variable_embedder, embedding 
+embedding_type = "pca"
+embedder = embedding(embedding_type, n_cmp = 519)
+
+train_x_s, val_x_s, train_x_t, val_x_t, test_x_t = variable_embedder(embedder,\
+[train_x_s, val_x_s, train_x_t, val_x_t, test_x_t]) 
+
+
+
 fine_tuning = True
 %run -i naive_learning.py
 
