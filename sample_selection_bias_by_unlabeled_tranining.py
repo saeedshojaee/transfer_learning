@@ -30,8 +30,8 @@ x_t = np.concatenate((train_x_s, val_x_t), axis = 0)
 
 print('Kernel mean matching')
 # =============================================================================
-kmm_kernel = 'rbf'
-B = 1000
+kmm_kernel = 'lin'
+B = 1
 # =============================================================================
 
 # from kernel_mean_matching import eprimical_kmm as ekmm

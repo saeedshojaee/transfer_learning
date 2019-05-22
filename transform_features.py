@@ -30,9 +30,10 @@ Y_s =  np.concatenate((train_y_s, val_y_s), axis = 0)
 Y_t =  np.concatenate((train_y_t, val_y_t), axis = 0)
 print('Finding the metric')
 
-from metric_learning import hisc_meme_no_labeled_data
-M , L = hisc_meme_no_labeled_data(X_s, Y_s, X_t, p = 2, B = 1000,
-                  threshhold = 1)
+from metric_learning import hisc_meme_no_labeled_data, HSIC2, hisc_meme
+M , L = hisc_meme_no_labeled_data(X_s, Y_s, X_t, p = 2, B = 1000)
+# M , L = hisc_meme(X_s, X_s, X_t, X_t, p = 2, B = 1000)
+# M , L = HSIC2(X_s, Y_s, p = 2, B = 1000)
 # from metric_learning import hisc_meme_no_loc
 # M , L = hisc_meme_no_loc(X_s, X_t, p = 2, B = 1000,
 #                   threshhold = 1)

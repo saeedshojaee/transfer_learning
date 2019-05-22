@@ -19,7 +19,10 @@ from functools import partial
 from keras.optimizers import SGD, RMSprop, Adadelta, Adam
 from keras import regularizers
 import keras
+
+
 import sys
+
 import numpy as np
 
 # def initializaer():
@@ -36,12 +39,14 @@ import numpy as np
   
 class DANN():
     def __init__(self, num_input):
-        self.optimizer_1 = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=1e-4)
+        self.optimizer_1 = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
         self.optimizer_2 = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 
         self.act_fun = 'relu'
         self.num_input = num_input
-        self.encode_num = 200 
+        self.encode_num = 200
+        self.discriminator_num = num_input
+
         self.dropout = 0.5
         
         
@@ -59,40 +64,37 @@ class DANN():
             metrics=['accuracy'])
        
         
-        # Build and compile the generator
+        # Build and compile the encoder
         self.encoder = self.build_encoder()
         self.encoder.compile(loss='mean_squared_error', optimizer=self.optimizer_2)
+
+        # Build and compile the decoder
+        self.decoder = self.build_decoder()
+        self.decoder.compile(loss='mean_squared_error', optimizer=self.optimizer_2)
 
 
         # generator takes x as input
         x = Input(shape=(self.num_input ,))
         y = self.encoder(x)
-		
-
-        # For the combined model we will only train the generator
-        self.discriminator.trainable = False
-
+		z = self.decoder(y)
+ 
         # The valid takes generated images as input and determines validity
-        valid = self.discriminator(y)
+        valid = self.discriminator(z)
         
         # The location takes generated images as input and localize
         location = self.localization(y)
 
-        # The combined model  (stacked generator and discriminator) takes
-        # noise as input => generates images => determines validity
-        self.discriminator.trainable = False
+        # The combined model  
         self.encoder.trainable = True
-        self.floor_combined = Model(x, valid)
+        self.decoder.trainable = False
+        self.autoencoder = Model(x, z)
+        self.autoencoder.compile(loss='mean_squared_error', optimizer=self.optimizer_2)
+        
+        self.decoder.trainable = True
+        self.floor_combined = Model(y, valid)
         self.floor_combined.compile(loss='binary_crossentropy', optimizer=self.optimizer_1)
         
-        self.discriminator.trainable = True
-        self.encoder.trainable = False
-        self.floor_combined_d = Model(x, valid)
-        self.floor_combined_d.compile(loss='binary_crossentropy',
-                                      optimizer=self.optimizer_1,
-                                      metrics=['accuracy'])
-        
-        
+ 
         self.encoder.trainable = True
         self.localization.trainable = True
         self.localization_combined = Model(x, location)
@@ -114,10 +116,26 @@ class DANN():
         y = Dense(self.encode_num, activation=self.act_fun, kernel_initializer=initilization_method)(l4)
         return Model(input_layer, y)
     
+    
+    def build_decoder(self):
+        initilization_method = 'he_normal'
+        regularzation_penalty = 0.08
+        input_layer = Input(shape=(self.encode_num,))
+        l1 = Dense(500, activation=self.act_fun, input_dim = self.num_input, kernel_initializer=initilization_method, 
+                   kernel_regularizer=regularizers.l2(regularzation_penalty))(input_layer)
+        l1 = Dropout(self.dropout)(l1)
+        l3 = Dense(500, activation=self.act_fun, kernel_initializer=initilization_method,
+                    kernel_regularizer=regularizers.l2(regularzation_penalty))(l1)
+        l3 = Dropout(self.dropout)(l3)
+        l4 = Dense(500, activation=self.act_fun, kernel_initializer=initilization_method,
+                    kernel_regularizer=regularizers.l2(regularzation_penalty))(l3)
+        y = Dense(self.discriminator_num, activation=self.act_fun, kernel_initializer=initilization_method)(l4)
+        return Model(input_layer, y)
+    
     def build_floor_discriminator(self):
         initilization_method = 'he_normal'
         regularzation_penalty = 0.08
-        y = Input(shape=(self.encode_num,))
+        y = Input(shape=(self.discriminator_num,))
         import flipGradientTF
         Flip = flipGradientTF.GradientReversal(1)
         dann_in = Flip(y)
@@ -180,7 +198,7 @@ class DANN():
             # ---------------------
             if epoch > 0:
               self.discriminator.trainable = True
-
+              self.decoder.trainable = True
               half_batch = int(batch_size/2)
               idx = np.random.permutation(train_x_s.shape[0])
               idx = idx[:half_batch]
@@ -195,8 +213,8 @@ class DANN():
               encoded_s =  self.encoder.predict(x_s)
               encoded_t =  self.encoder.predict(x_t)
               
-              d_loss_source = self.discriminator.train_on_batch(encoded_s, np.ones((half_batch, 1)))
-              d_loss_target = self.discriminator.train_on_batch(encoded_t, np.zeros((x_t_batch, 1)))
+              d_loss_source = self.floor_combined.train_on_batch(encoded_s, np.ones((half_batch, 1)))
+              d_loss_target = self.floor_combined.train_on_batch(encoded_t, np.ones((x_t_batch, 1)))
               d_loss = 0.5 * np.add(d_loss_source, d_loss_target)
                           
               # d_loss_source = self.floor_combined_d.train_on_batch(x_s, np.ones((half_batch, 1)))
@@ -204,6 +222,7 @@ class DANN():
               # d_loss = 0.5 * np.add(d_loss_source, d_loss_target)
             else:
               d_loss = [0,0]
+              
             # ---------------------
             #  Train encoder
             # ---------------------
@@ -217,9 +236,8 @@ class DANN():
               idx = np.random.permutation(train_x_s.shape[0])
               idx = idx[:x_t_batch]
               x_t = train_x_s[idx,:]
-              
-              self.discriminator.trainable = False
-              g_loss = self.floor_combined.train_on_batch(x_t, np.ones((x_t_batch, 1)))
+              self.decoder.trainable = False
+              g_loss = self.autoencoder.train_on_batch(x_t, x_t)
               # g_loss = self.floor_combined.train_on_batch(x_t, np.ones((batch_size, 1)))
               self.encoder.trainable = False
 
@@ -325,7 +343,7 @@ if __name__ == '__main__':
     dann = DANN(train_x_s.shape[1])
     dann.train(train_x_s, train_y_s, val_x_s, val_y_s, \
                train_x_t,train_y_t, val_x_t, val_y_t,
-                  epochs=100000, batch_size=2000, save_interval=100)
+                  epochs=100000, batch_size=500, save_interval=100)
     
     predict_y = dann.localization_combined.predict(test_x_t)
     error = np.linalg.norm(predict_y - test_y_t, axis=1)    

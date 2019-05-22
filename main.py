@@ -28,8 +28,10 @@ fine_tuning = True
 %run -i naive_learning.py
 
 fine_tuning = False
+%run -i naive_learning.py
 %run -i metric_learning_training.py
 %run -i sample_selection_bias_by_unlabeled_tranining.py
+%run -i transform_features.py
 %run -i transformed_sample_selection.py
 
 

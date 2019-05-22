@@ -78,14 +78,16 @@ def error_dist(X_s, train_y_s, X_t, train_y_t, error_test, test_y_t, weights= No
     fig.suptitle(title)
 
 
-def plot_embeding(x_s, x_t, coef_s, train_y_s, train_y_t, fig_name = None):
+def plot_embeding(x_s, x_t, coef_s, train_y_s=None, train_y_t=None, fig_name = None):
  
   import numpy as np
-  coef_ind = coef_s > np.mean(coef_s)
+  treshhold = 0.9
+  # treshhold = np.mean(coef_s)
+  coef_ind = coef_s > treshhold
   coef_ind = coef_ind.reshape(coef_ind.shape[0],)
   from embedders import embedding, variable_embedder
   n_components = 2
-  embedding_type = "autoencoder"
+  embedding_type = "mds"
   embedder = embedding(embedding_type, n_cmp = n_components, n_ngb = 10)
   if embedding_type == "autoencoder":
     split = 0.3
@@ -109,27 +111,29 @@ def plot_embeding(x_s, x_t, coef_s, train_y_s, train_y_t, fig_name = None):
   fg_color = 'black'
   f = plt.figure(figsize=(10,10),facecolor=bg_color, edgecolor=fg_color)
 
-  marker_size = 5
   
-  cmap_s = cmap2d(train_y_s)
-  cmap_t = cmap2d(train_y_t)
-  # print(cmap_t.shape)
-  # print(emb_train_x_t.shape)
+  
+  if train_y_s is not None:
+
+    cmap_s = cmap2d(train_y_s)
+    cmap_t = cmap2d(train_y_t)
+
+  else:
+    cmap_s = 'b'
+    cmap_t = 'k'
+   
   l00 = plt.scatter(emb_train_x_s[:,0],emb_train_x_s[:,1], c = cmap_s,
               label  = 'source', marker =  "o", s = 3)
-  # plt.setp(l00, markersize=marker_size)
   l01 = plt.scatter(emb_train_x_t[:,0],emb_train_x_t[:,1], c = cmap_t,
               label  = 'target', marker =  "^", s = 3)
-  # # plt.setp(l01, markersize=marker_size-3)
-  
   l22 = plt.scatter(emb_train_x_s[coef_ind,0],emb_train_x_s[coef_ind,1], c ='r',
-              label  = 'ssbc', s = 1)
-  # plt.setp(l22, markersize=1)
+              label  = 'ssbc', s = 0.5)
+  
   if fig_name:
     plt.savefig( fig_name + ".svg", dpi=1200)
   else:
     plt.show()
-  
+
   
   
 def cmap2d(data):

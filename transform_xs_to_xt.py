@@ -24,54 +24,78 @@ if load_data_flag == True:
     val_x_t, val_y_t, test_x_t, test_y_t = load()
 
 
-
 X_s = np.concatenate((train_x_s, val_x_s), axis = 0)
 X_t = np.concatenate((train_x_t, val_x_t), axis = 0)
 Y_s =  np.concatenate((train_y_s, val_y_s), axis = 0)
 Y_t =  np.concatenate((train_y_t, val_y_t), axis = 0)
 print('Finding the metric')
-from metric_learning import hisc_meme
-M , L = hisc_meme(X_s, Y_s, X_t, Y_t, p = 2, B = 1000)
 
-# from metric_learning import kernel_hisc_meme
-# M, L = kernel_hisc_meme(X_s, Y_s, X_t, Y_t, p = 2, B = 1000,
+from metric_learning import hisc_meme_no_labeled_data, HSIC3
+# M , L = hisc_meme_no_labeled_data(X_s, Y_s, X_t, p = 2, B = 1000)
+L = HSIC3(X_s, X_t, p = 2, B = 1000)
+# from metric_learning import hisc_meme_no_loc
+# M , L = hisc_meme_no_loc(X_s, X_t, p = 2, B = 1000,
 #                   threshhold = 1)
 
 
-
-ml_x_s = train_x_s @ L
+ml_x_s = train_x_s @ L 
 ml_val_x_s = val_x_s @ L
 
-ml_x_t = train_x_t @ L
-ml_val_x_t = val_x_t @ L
+ml_x_t = train_x_t 
+ml_val_x_t = val_x_t 
 
-ml_test_x = test_x_t @ L
+ml_test_x = test_x_t
 print('Done')
+# =============================================================================
+
+print('Kernel mean matching')
+from plotters import error_dist, plot_cdf, plot_embeding
+
+t_ssbc_x_s_tmp = np.concatenate((ml_x_s, ml_val_x_s), axis = 0)
+t_ssbc_x_t_tmp = np.concatenate((ml_x_t, ml_val_x_t), axis = 0)
+
+kmm_kernel = 'rbf'
+B = 1
+from kernel_mean_matching import kernel_mean_matching as kmm
+coef_s =  kmm(t_ssbc_x_t_tmp, t_ssbc_x_s_tmp, kern = kmm_kernel, B = B, sigma = 8)
+
+# from kernel_mean_matching import empirical_kmm as ekmm
+# coef_s,_ =  ekmm(t_ssbc_x_t_tmp, t_ssbc_x_s_tmp, kern = kmm_kernel, B = B)
+plot_embeding(t_ssbc_x_s_tmp, t_ssbc_x_t_tmp, \
+              coef_s, fig_name = 't-ssbc-ae')
+plt.show()
+print('Done')
+stop
+# =============================================================================
+coef_val_s = coef_s[ml_x_s.shape[0]:]
+coef_s = coef_s[:ml_x_s.shape[0]]
+plot_embeding(ml_x_s, ml_x_t, coef_s, train_y_s = train_y_s,\
+              train_y_t = train_y_t, fig_name = 't-ssbc-ae')
 
 # =============================================================================
 
 num_inputs = ml_x_s.shape[1]# input layer size
 # =============================================================================
-if 'ml_model' in locals():
-  del ml_model
-if 'ml_model_obj' in locals():
-  del ml_model_obj
-ml_model_obj = my_models(num_inputs, dropout = dropout_pr)
-ml_model = ml_model_obj.build_model()
-ml_model = ml_model_obj.fit(ml_x_s, train_y_s, ml_val_x_s, val_y_s, 
+if 'model' in locals():
+  del model
+if 'model_obj' in locals():
+  del model_obj
+model_obj = my_models(num_inputs, dropout = dropout_pr)
+model = model_obj.build_model()
+model = model_obj.fit(ml_x_s, train_y_s, ml_val_x_s, val_y_s, 
                       scale = NN_scaling)
 
 
 error_metric, ml_train_loss, ml_val_loss, ml_test_loss = \
-  ml_model_obj.evaluate(ml_x_t,train_y_t, ml_val_x_t, val_y_t, ml_test_x,
+  model_obj.evaluate(ml_x_t,train_y_t, ml_val_x_t, val_y_t, ml_test_x,
                      test_y_t, scale = NN_scaling)
   
 if fine_tuning:
-  ml_model = ml_model_obj.fit(ml_x_t, train_y_t, ml_val_x_t, val_y_t, 
+  model = model_obj.fit(ml_x_t, train_y_t, ml_val_x_t, val_y_t, 
                       scale = NN_scaling)
 
   error_metric_f, ml_train_loss_f, ml_val_loss_f, ml_test_loss_f = \
-    ml_model_obj.evaluate(ml_x_t,train_y_t, ml_val_x_t, val_y_t, ml_test_x,
+    model_obj.evaluate(ml_x_t,train_y_t, ml_val_x_t, val_y_t, ml_test_x,
                        test_y_t, scale = NN_scaling)
     
 title = 'metric learning'
@@ -92,5 +116,5 @@ from plotters import plot_cdf
 plot_cdf(error_metric, 100)    
 plt.show()
 
-# del ml_model
-# del ml_model_obj
+del model
+del model_obj

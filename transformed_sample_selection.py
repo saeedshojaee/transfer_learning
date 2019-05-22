@@ -52,28 +52,32 @@ print('Done')
 
 # =============================================================================
 print('Kernel mean matching')
+from plotters import error_dist, plot_cdf, plot_embeding
 
 t_ssbc_x_s_tmp = np.concatenate((t_ssbc_x_s, t_ssbc_val_x_s), axis = 0)
 t_ssbc_x_t_tmp = np.concatenate((t_ssbc_x_t, t_ssbc_val_x_t), axis = 0)
 
-kmm_kernel = 'lin'
-B = 1000
+kmm_kernel = 'rbf'
+B = 1
 
 # from kernel_mean_matching import eprimical_kmm_emb as ekmm_emb
 # coef_s, coef_t =  ekmm_emb(t_ssbc_x_t_tmp, t_ssbc_x_s_tmp, kern = kmm_kernel, B = B,
 #                             embedder_type = 'autoencoder', n_components = 10)
 
 from kernel_mean_matching import kernel_mean_matching as kmm
-coef_s =  kmm(t_ssbc_x_s_tmp, t_ssbc_x_s_tmp, kern = kmm_kernel, B = B)
+coef_s =  kmm(t_ssbc_x_t_tmp, t_ssbc_x_s_tmp, kern = kmm_kernel, B = B, sigma = 8)
 
 # from kernel_mean_matching import empirical_kmm as ekmm
-# coef_s,_ =  ekmm(t_ssbc_x_s_tmp, t_ssbc_x_s_tmp, kern = kmm_kernel, B = B)
-
+# coef_s,_ =  ekmm(t_ssbc_x_t_tmp, t_ssbc_x_s_tmp, kern = kmm_kernel, B = B)
+plot_embeding(t_ssbc_x_s_tmp, t_ssbc_x_t_tmp, \
+              coef_s, fig_name = 't-ssbc-ae')
+plt.show()
 print('Done')
 # =============================================================================
 coef_val_s = coef_s[t_ssbc_x_s.shape[0]:]
 coef_s = coef_s[:t_ssbc_x_s.shape[0]]
-
+plot_embeding(t_ssbc_x_s, t_ssbc_x_t, coef_s, train_y_s = train_y_s,\
+              train_y_t = train_y_t, fig_name = 't-ssbc-ae')
 # =============================================================================
 import numpy.matlib as npm
 training_weights = npm.repmat(coef_s, 1 , train_y_s.shape[1])
@@ -123,7 +127,8 @@ error_dist(t_ssbc_x_s, train_y_s, t_ssbc_x_t, train_y_t, error_metric_plus_sampl
            test_y_t, weights=coef_s,  title = title)
 plt.show()
 
-plot_embeding(train_x_s, train_x_t, coef_s, train_y_s, train_y_t, fig_name = 't-ssbc-ae')
+# plot_embeding(train_x_s, train_x_t, coef_s, train_y_s = train_y_s, train_y_t = train_y_t, fig_name = 't-ssbc-ae')
+# plot_embeding(train_x_s, train_x_t, coef_s, fig_name = 't-ssbc-ae')
 
 
 plot_cdf(error_metric_plus_sample, 100)    

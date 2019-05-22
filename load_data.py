@@ -24,8 +24,13 @@ def load_data(file_name, building_id, floor_id, percentage, split_size, origin,
   X = np.asarray(rss_values, dtype=np.float64) #convert to numpy array
   num_data = len(X) #number of training points
   # take a percentage of available data
-  Y = Y[:int(percentage*num_data)]#take part of the data from source floor
-  X = X[:int(percentage*num_data)]
+  idx = np.random.permutation(num_data)
+  if percentage <= 1:
+    idx = idx[:int(percentage*num_data)]
+  else:
+    idx = idx[:int(percentage)]
+  Y = Y[idx] #take part of the data from source floor
+  X = X[idx]
   
   
 # =============================================================================
@@ -42,11 +47,11 @@ def load_data(file_name, building_id, floor_id, percentage, split_size, origin,
 
 
 def load(source_BuildingID = 0,
-         source_FloorID = 0,
+         source_FloorID = 2,
          target_BuildingID = 0,
-         target_FloorID = 3,
+         target_FloorID = 0,
          source_percentage = 1,
-         unlabele_target_percentage = 300.0 / 1356,
+         unlabele_target_percentage = 300,
          split_size = 0.3,
          scaling = True):
   

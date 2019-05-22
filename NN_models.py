@@ -107,7 +107,7 @@ sgd = SGD(lr=0.05, decay=1e-6, momentum=0.9, nesterov=True)
 tbCallBack = keras.callbacks.TensorBoard(log_dir='./Regression', histogram_freq=0, write_graph=True, write_images=True)#tensorboard tensorboard --logdir Regression
 earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=60, verbose=0, mode='auto')  
   
-def build_model_trans_localtions (num_input, num_weight, dropout = 0.25):
+def build_model_trans_localtions (num_input, num_weight, dropout = 0.5):
 
   input_layer = Input(shape=(num_input,))
   weights_tensor = Input(shape=(num_weight,))
@@ -132,7 +132,7 @@ def build_model_trans_localtions (num_input, num_weight, dropout = 0.25):
 
 #neuron network for extrapolation
 #define model
-def build_model_normal_transfer (num_input, dropout = 0.25):
+def build_model_normal_transfer (num_input, dropout = 0.5):
   model = Sequential()
   model.add(Dense(500, activation=act_fun, input_dim=num_input, kernel_initializer=initilization_method ,kernel_regularizer=regularizers.l2(regularzation_penalty)))
   model.add(Dropout(dropout))
@@ -147,7 +147,7 @@ def build_model_normal_transfer (num_input, dropout = 0.25):
   return model
 
 
-def build_model_autoencoder (num_input, n_components, dropout = 0.25):
+def build_model_autoencoder (num_input, n_components, dropout = 0.5):
   input_layer = Input(shape=(num_input,))
   
   #encoder
